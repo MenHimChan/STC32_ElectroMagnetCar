@@ -1,0 +1,70 @@
+C251 COMPILER V5.60.0,  imu                                                                10/07/23  00:12:47  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE imu
+OBJECT MODULE PLACED IN .\Out_File\imu.obj
+COMPILER INVOKED BY: D:\KEIL_MDK\C251\BIN\C251.EXE ..\CODE\imu.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE I
+                    -NCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\i
+                    -nc;..\USER\src;..\CODE) DEBUG PRINT(.\Out_File\imu.lst) TABS(2) OBJECT(.\Out_File\imu.obj) 
+
+stmt  level    source
+
+    1          #include "imu.h"
+    2          
+    3          
+    4          //uint8 Flag_Slope_Finish = 0;
+    5          //float Slope_gyro = 0.0;
+    6          
+    7          
+    8          //void IMU_Control(void)
+    9          //{
+   10          //   static float Slope_last = 0; 
+   11          //  
+   12          //   imu660ra_get_gyro();     // 获取陀螺仪数据
+   13          //   Slope_gyro = Slope_last* 0.3 + imu660ra_gyro_transition(imu660ra_gyro_y) * 0.7;    // 一阶互补滤波
+   14          //   Slope_last = Slope_gyro;
+   15          //   Slope_Detect();
+   16          //   Slope_Handler();   
+   17          //}
+   18          
+   19          //void Slope_Detect(void)
+   20          //{
+   21          //  if(Flag_Slope == 0)
+   22          //  {
+   23          //      if(Slope_gyro > Angle_Slope)    // x轴旋转角速度跳变
+   24          //      {
+   25          //          LightOn;
+   26          //      }
+   27          //      else
+   28          //  }
+   29          //}
+   30          
+   31          //void Slope_Handler(void)
+   32          //{
+   33          //    
+   34          //}
+   35          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =    ------     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =    ------     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =    ------     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

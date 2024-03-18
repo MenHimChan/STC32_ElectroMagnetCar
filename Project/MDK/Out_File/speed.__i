@@ -1,0 +1,1 @@
+"..\CODE\speed.c" XSMALL INTR2 WARNINGLEVEL (3) OPTIMIZE (0,SPEED) BROWSE INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\inc;..\USER\src;..\CODE) DEBUG PRINT(.\Out_File\speed.lst) OBJECT(.\Out_File\speed.obj)

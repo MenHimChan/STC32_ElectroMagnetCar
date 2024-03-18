@@ -1,0 +1,173 @@
+C251 COMPILER V5.60.0,  main                                                               15/07/23  15:59:10  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE main
+OBJECT MODULE PLACED IN .\Out_File\main.obj
+COMPILER INVOKED BY: D:\Keil\C251\BIN\C251.EXE ..\USER\src\main.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE 
+                    -INCDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\
+                    -inc;..\USER\src;..\CODE) DEBUG PRINT(.\Out_File\main.lst) OBJECT(.\Out_File\main.obj) 
+
+stmt  level    source
+
+    1          /********************************************************************************************************
+             -*************
+    2           * COPYRIGHT NOTICE
+    3           * Copyright (c) 2020,逐飞科技
+    4           * All rights reserved.
+    5           * 技术讨论QQ群：一群：179029047(已满)  二群：244861897(已满)  三群：824575535
+    6           *
+    7           * 以下所有内容版权均属逐飞科技所有，未经允许不得用于商业用途，
+    8           * 欢迎各位使用并传播本程序，修改内容时必须保留逐飞科技的版权声明。
+    9           *
+   10           * @file                main
+   11           * @company                     成都逐飞科技有限公司
+   12           * @author              逐飞科技(QQ790875685)
+   13           * @version             查看doc内version文件 版本说明
+   14           * @Software                    MDK FOR C251 V5.60
+   15           * @Target core         STC32G12K128
+   16           * @Taobao                      https://seekfree.taobao.com/
+   17           * @date                2020-12-18
+   18           ********************************************************************************************************
+             -************/
+   19          
+   20          #include "headfile.h"
+   21          
+   22          /*
+   23           * 系统频率，可查看board.h中的 FOSC 宏定义修改。
+   24           * board.h文件中FOSC的值设置为0,则程序自动设置系统频率为33.1776MHZ
+   25           * 在board_init中,已经将P54引脚设置为复位
+   26           * 如果需要使用P54引脚,可以在board.c文件中的board_init()函数中删除SET_P54_RESRT即可
+   27           */
+   28          
+   29          
+   30          
+   31          void BUZZ_Init(void)
+   32          {
+   33   1              gpio_mode(P6_7,GPO_PP);                 
+   34   1              BUZZPin = 0;            // 先关闭蜂鸣器
+   35   1      }
+   36          
+   37          
+   38          
+   39          
+   40          void All_Init(void)
+   41          {
+   42   1              DisableGlobalIRQ();                                                                                     // 关闭总中断
+   43   1              board_init();                                                                                                           // 初始化寄存器,勿删除此句代码。
+   44   1              Encoder_Init();                                                                                                 // 编码器初始化
+   45   1              Motor_Init();                                                                                                           // 电机初始化
+   46   1              init_Steer_PWM();                                                                                               // 舵机初始化
+   47   1              BUZZ_Init();                                                                                                            // 蜂鸣器高电平点亮
+   48   1              Analog_Digital_Converter_Init();                                // ADC初始化
+   49   1              Tof_Init();                                                                                                                     // 测距模块初始化
+   50   1      //      imu660ra_init();                                                                                                // 姿态传感器初始化
+   51   1              oled_init();                                                                                                            // 初始化oled屏幕
+   52   1              pit_timer_ms(TIM_1,5);                                                                  // 使用定时器做周期中断，时间5ms一次
+   53   1              wireless_uart_init();                                                                           // 无线串口初始化: UART4_TX_P03   UART4_RX_P02  115200  TIM2
+   54   1              //////////////////////////////////////////////////////////////////
+   55   1              Flag_Init();                                                                                                            // Fuse标志位初始化（置0）
+C251 COMPILER V5.60.0,  main                                                               15/07/23  15:59:10  PAGE 2   
+
+   56   1              PID_Parameter_Init(&TurnPID);                                           // 转向PID结构体初始化
+   57   1              PID_Parameter_Init(&SpeedPID);                                  // 速度PID结构体初始化
+   58   1              EnableGlobalIRQ();                                                                                      // 开启总中断
+   59   1              wireless_uart_send_buff("Init OK!\n",9);// 无线串口发送初始化完成信息
+   60   1      }
+   61          
+   62          
+   63          void main()
+   64          {
+   65   1              char txt[20];                                                                                   // sprintf容器
+   66   1              char mess[30];                                                                          // wireless容器
+   67   1              All_Init();                                                                                             // 全体硬件初始化
+   68   1              
+   69   1              /*----测试函数(内部本身有死循环)----*/
+   70   1      //      Test_Motor(1);                  // 1:正转  0:反转
+   71   1      
+   72   1              
+   73   1              // 速度参数
+   74   1              ClsLoop_Set_Speed  = 2600;                                              // 闭环速度（避障之后）
+   75   1              ClsLoop_Speed = ClsLoop_Set_Speed;                              // 
+   76   1              OpenLoop_Set_Speed = 2100;                                              // 开环速度（避障之前）
+   77   1              OpenLoop_Speed = OpenLoop_Set_Speed;    
+   78   1              
+   79   1              // 转向环参数
+   80   1              Turn_Suquence = 2;                                                                              // 转向PID下标
+   81   1              
+   82   1              // 发车方向（0：左入左出  1：右入右出）
+   83   1              Default_Dir = 1;                                                                                // 发车、入库、避障方向一致                                                                                                                                     
+   84   1              
+   85   1              while(1)
+   86   1              {
+   87   2                              /**********显示5个电感值************/
+   88   2                              sprintf(txt,"Mid_Adc= %05d",adc_date[4]);
+   89   2                              oled_p6x8str(1, 3, txt);   // 显示
+   90   2                              sprintf(txt,"Left_Adc= %05d",adc_date[0]);
+   91   2                              oled_p6x8str(1, 4, txt);   // 显示
+   92   2                              sprintf(txt,"Right_Adc= %05d",adc_date[1]);
+   93   2                              oled_p6x8str(1, 5, txt);   // 显示
+   94   2                              sprintf(txt,"Left_Xie= %05d",adc_date[2]);
+   95   2                              oled_p6x8str(1, 6, txt);   // 显示
+   96   2                              sprintf(txt,"Right_Xie= %05d",adc_date[3]);
+   97   2                              oled_p6x8str(1, 7, txt);         // 显示
+   98   2      //                      sprintf(txt,"adc_deviation= %05d",adc_deviation);       
+   99   2      //                      oled_p6x8str(1, 8, txt); // 显示
+  100   2                      
+  101   2                                      /* 调试编码器 */
+  102   2      //                      sprintf(mess,"%d,%d,%d\n",right_speed,left_speed,real_speed);                   // 编码器
+  103   2                                      
+  104   2                                      /* 调试速度闭环 */
+  105   2      //                      sprintf(mess,"%d,%d\n",real_speed,Speed_PWM);
+  106   2      //                      wireless_uart_send_buff(mess,30);                               // 右轮速度发送
+  107   2                      
+  108   2                                      /* 调试IMU660 */
+  109   2      //                              sprintf(mess,"%f\n",Slope_gyro);
+  110   2      //                              wireless_uart_send_buff(mess,30);
+  111   2                        
+  112   2                              /* 发车 */
+  113   2                              if(Flag.Game == 0)
+  114   2                              {
+  115   3                                      LightOn;
+  116   3                                      delay_ms(500);
+  117   3                                      OutInGarage(Default_Dir,2000);  // 出库
+  118   3                                      LightOff;
+  119   3                                      Flag.Game = 1;                                                      // 防止再次进入
+  120   3                                      int_OK = 1;
+  121   3                                      Flag.start_go = 1;                                                      // 执行Fuse全局控制
+C251 COMPILER V5.60.0,  main                                                               15/07/23  15:59:10  PAGE 3   
+
+  122   3                              }
+  123   2                              
+  124   2                              // 先不编译方便调试，需要编译时将0 -> 1
+  125   2      #if 1                   
+  126   2                              /* 停车 */
+  127   2                              else if(Flag.Game == 1)
+  128   2                                              STOP_Analyse();                                 // 停车检测 + 入库
+  129   2      #endif
+  130   2              }
+  131   1      }
+*** WARNING C47 IN LINE 66 OF ..\USER\src\main.c: 'mess': unreferenced local variable
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       379     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        20     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        86     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  1 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,126 @@
+C251 COMPILER V5.60.0,  fuse                                                               15/07/23  15:59:11  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE fuse
+OBJECT MODULE PLACED IN .\Out_File\fuse.obj
+COMPILER INVOKED BY: D:\Keil\C251\BIN\C251.EXE ..\CODE\fuse.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE INCD
+                    -IR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\inc;
+                    -..\USER\src;..\CODE) DEBUG PRINT(.\Out_File\fuse.lst) OBJECT(.\Out_File\fuse.obj) 
+
+stmt  level    source
+
+    1          #include "fuse.h"
+    2          
+    3          
+    4          Body Flag;                  // 结构体定义各类关键标志位
+    5          int16 Turn_PWM = 0;                             // 最终转向PWM
+    6          /*******************PIT定时中断******************
+    7          函数：void Fuse_result(void)      
+    8          功能：速度环、转向环控制
+    9          参数：无
+   10          说明：
+   11          返回值：无
+   12           **********************************************/
+   13          unsigned char int_OK = 0;                                                               // 初始化成功标志位
+   14          unsigned char Flag_OpenLoop = 0;                                // 默认进行闭环控制
+   15          void Fuse_result(void)      
+   16          {
+   17   1                      if(int_OK)
+   18   1                      {
+   19   2                                      if(!Flag.start_go)
+   20   2                                                      go_motor(0,0);  // 出界保护
+   21   2                                                                      
+   22   2                                      else
+   23   2                                      {               
+   24   3                                                      // 5ms控制最内环:驱动轮子往前走
+   25   3                                                      if(1 == Flag.T_Inmost)
+   26   3                                                      {               
+   27   4                                                                      Flag.T_Inmost = 0;
+   28   4                                                                      if(!Flag_Slope)                                                                                                         // 只要不是坡道
+   29   4                                                                               Speed_PWM = OpenLoop_Speed;                                            // 则不需要添加速度闭环，直接将低速值赋给占空比
+   30   4                                                                               
+   31   4                                                                      // 否则则将速度环运算结果投入占空比
+   32   4                                                                      All_PWM_left = Speed_PWM;                                                                       
+   33   4                                                                      All_PWM_right = Speed_PWM;
+   34   4                                                                      go_motor(All_PWM_left,All_PWM_right);
+   35   4                                                      }       
+   36   3                                                      
+   37   3                                                      // 10ms控制：舵机转向环
+   38   3                                                      if(1 == Flag.T_Turn && 0 == Flag_OpenLoop)
+   39   3                                                      {
+   40   4                                                                      Flag.T_Turn = 0;
+   41   4                                                                      Electromagnetism_Control();                                             // 电磁采集所有
+   42   4                                                                      adc_deviation = Cha_BI_He_Sqrt(Left_Adc,Right_Adc,450) + Cha_BI_He_Sqrt(Left_Xie_Adc,Right_Xie_Ad
+             -c,50);   //   9： 1 
+   43   4                                                                      adc_deviation = PlacePID_Control(&TurnPID,Turn_Pid[Turn_Suquence], adc_deviation, 0); //转向动态P
+             -ID   
+   44   4                                                                      Turn_PWM = -adc_deviation; 
+   45   4                                                                      Steering_Control_Out(Turn_PWM);                         // 舵机最终输出（函数内部已限幅）
+   46   4                                                      }
+   47   3                                                      
+   48   3                                                      // 30ms控制：TOF避障
+   49   3                                                      if(1 == Flag.T_Distance)
+   50   3                                                      {
+   51   4                                                                      Flag.T_Distance = 0;
+   52   4                                                                      if(!Flag_Tof_Finish)                                            // 还未完成过一次检测
+   53   4                                                                              Tof_Control();                                                          // 障碍物检测控制
+   54   4                                                      }
+   55   3                                      
+C251 COMPILER V5.60.0,  fuse                                                               15/07/23  15:59:11  PAGE 2   
+
+   56   3                                                      // 40ms控制：坡道检测(IMU660)
+   57   3                                                      if(1 == Flag.T_IMU)
+   58   3                                                      {
+   59   4                                                                      Flag.T_IMU = 0;
+   60   4      //                                                              if(!Flag_Slope_Finish)
+   61   4      //                                                                      IMU_Control();
+   62   4                                                      }
+   63   3                                                      
+   64   3                                                      // 50ms控制：速度闭环控制
+   65   3                                                      if(1 == Flag.T_Speed)
+   66   3                                                      {
+   67   4                                                                      Flag.T_Speed = 0;
+   68   4                                                                      Speed_PWM = PID_Realize(&SpeedPID, Speed_Pid, real_speed, ClsLoop_Speed);               // 速度位置式PID
+   69   4                                                                      Speed_PWM = range_protect(Speed_PWM, -2500, 2800);                                                                                                      // 注意正负号 
+   70   4                                                      }
+   71   3                                      }
+   72   2                      }
+   73   1      }
+   74            
+   75          //核心关键的标志位结构体初始化
+   76          void Flag_Init(void)
+   77          {
+   78   1              Flag.start_go = 0;                                      
+   79   1              Flag.T_Inmost = 0;                                      
+   80   1              Flag.T_Turn = 0;                                                        
+   81   1              Flag.T_Distance = 0;                            
+   82   1              Flag.T_Speed = 0;                                       
+   83   1              Flag.T_IMU = 0;
+   84   1              Flag.STOP = 0;                                                          // 停车结束
+   85   1              Flag.OUT_Garage = 0;                              // 出库标志位
+   86   1              Flag.Game = 0;                                                                  
+   87   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       385     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        13     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        16     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

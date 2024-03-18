@@ -1,0 +1,184 @@
+C251 COMPILER V5.60.0,  speed                                                              15/07/23  15:59:10  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE speed
+OBJECT MODULE PLACED IN .\Out_File\speed.obj
+COMPILER INVOKED BY: D:\Keil\C251\BIN\C251.EXE ..\CODE\speed.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE INC
+                    -DIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\inc
+                    -;..\USER\src;..\CODE) DEBUG PRINT(.\Out_File\speed.lst) OBJECT(.\Out_File\speed.obj) 
+
+stmt  level    source
+
+    1          #include "speed.h"
+    2          
+    3          /***********速度各变量声明**************/
+    4          int16 ClsLoop_Speed,OpenLoop_Speed ;          // 目标速度及其中间变量
+    5          int16 ClsLoop_Set_Speed,OpenLoop_Set_Speed;
+    6          
+    7          int16 real_speed;                                                                                                                 // 实时速度
+    8          
+    9          int16 right_speed;                                                                                                              // 右轮速度
+   10          int16 left_speed;                                                                                                                       // 左轮速度
+   11          int16 last_speed;                                                                                                                       // 上一轮速度
+   12          int16 distance = 0;                                                                                                             // 走过的路程
+   13          
+   14          int16 Speed_PWM = 0;                                                                            // 速度环PWM
+   15          int16 All_PWM_left = 0;                                                                         // 左轮PWM
+   16          int16 All_PWM_right = 0;                                                                        // 右轮PWM
+   17          
+   18          /*****************编码器初始化*****************
+   19          函数：void encoder_init(void)
+   20          功能：编码器初始化
+   21          参数：  无
+   22          说明：ctimer_count_init(CTIM0_P34);
+   23                编码器使用TIM3和TIM4，如更改引脚只需修改宏定义即可 
+   24                编码器使用带方向的编码器（好像不支持正交解码）
+   25          返回值：
+   26          **********************************************/
+   27          void Encoder_Init(void)
+   28          {
+   29   1               ctimer_count_init(Left_Ecoder_Pin1);             //初始化左编码器外部定时器
+   30   1               Left_Ecoder_Pin2 = 1;                                                  //初始化左编码器的方向引脚
+   31   1               ctimer_count_init(Right_Ecoder_Pin1);          //初始化右编码器外部定时器
+   32   1               Right_Ecoder_Pin2 = 1;                                                 //初始化右编码器的方向引脚
+   33   1      }
+   34          
+   35          /*****************速度测量*****************
+   36          函数：void speed_measure(void)
+   37          功能：测量实时速度，两个轮的平均速度 编码器采集值，
+   38          参数：无
+   39          说明：该函数可以测出速度，获取速度后无需再次复位清零，已包括了
+   40          返回值：
+   41          ******************************************/
+   42          void speed_measure(void)
+   43          {
+   44   1      ////////////////////////右轮测速//////////Right//////
+   45   1                right_speed = ctimer_count_read(Right_Ecoder_Pin1);
+   46   1          ctimer_count_clean(Right_Ecoder_Pin1); 
+   47   1      
+   48   1      //////////////////// 左轮测速/////////Left///////////////
+   49   1                      left_speed = ctimer_count_read(Left_Ecoder_Pin1);
+   50   1          ctimer_count_clean(Left_Ecoder_Pin1); 
+   51   1                          
+   52   1      /////////////带方向编码器使用下面读取方向////////////////
+   53   1                      if (0 == Left_Ecoder_Pin2)
+   54   1                              left_speed = -left_speed;
+   55   1                      if (1 == Right_Ecoder_Pin2)
+   56   1                              right_speed = -right_speed;
+   57   1      
+C251 COMPILER V5.60.0,  speed                                                              15/07/23  15:59:10  PAGE 2   
+
+   58   1           real_speed = (right_speed+left_speed) / 2;        // 速度平均值
+   59   1         //  Speed_Min = last_speed;
+   60   1             ///  Speed_Min = range_protect(Speed_Min, -500, 500);
+   61   1         // real_speed = limit(real_speed,2000); //限幅保护   
+   62   1           last_speed = real_speed; 
+   63   1                     
+   64   1           distance += (right_speed+left_speed)*0.01;    //测距离  化为厘米为单位             
+   65   1      }           
+   66          
+   67          
+   68          /****************************电机初始化**********************
+   69          函数：void Motor_Init(void)
+   70          参数：无
+   71          说明：无
+   72          返回：无
+   73          **********************************************************/
+   74          void Motor_Init(void)
+   75          {
+   76   1                      // ------DRV驱动-------------
+   77   1                      // 左轮
+   78   1                      pwm_init(Left_PWM_Pin,17000,0);   // 初始化PWM  使用P62引脚  初始化频率为10Khz
+   79   1                      gpio_mode(Left_DIR_Pin,GPO_PP);       // 设置DRV方向引脚为为推挽输出  P60
+   80   1                      // 右轮
+   81   1                      pwm_init(Right_PWM_Pin,17000,0);          // 初始化PWM  使用P66引脚  初始化频率为10Khz
+   82   1                      gpio_mode(Right_DIR_Pin,GPO_PP);      // 设置DRV方向引脚为为推挽输出  P64
+   83   1      }
+   84          
+   85          /****************************电机输出**********************
+   86          函数：void go_motor (int16 left_PWM,int16 right_PWM)
+   87          参数：int16 left_PWM,int16 right_PWM
+   88          说明：pwm_duty(PWMA_CH1P_P60, duty);
+   89                务必将车子的电机逻辑调像这个一样，第一个参数控制左电机，第二个参数控制右电机
+   90                传入的参数如果为正数，电机正转，负值反转！！！！！
+   91          返回：无
+   92          时间：2023.06.19调试完毕
+   93          **********************************************************/
+   94          #define Duty_Max  7000   // 限幅最大值7000
+   95          void go_motor(int16 left_PWM,int16 right_PWM)
+   96          {
+   97   1      //-------DRV驱动-----------
+   98   1               if(left_PWM > 0)           //左轮
+   99   1         {
+  100   2                       left_PWM = left_PWM <= Duty_Max ? left_PWM : Duty_Max;
+  101   2                       P60 = 1;                        
+  102   2           pwm_duty(Left_PWM_Pin,left_PWM);//正转
+  103   2         }    
+  104   1               else 
+  105   1         {
+  106   2           left_PWM = left_PWM >= -Duty_Max ? (-left_PWM) : Duty_Max;  
+  107   2           P60 = 0;   
+  108   2           pwm_duty(Left_PWM_Pin,left_PWM);//反转
+  109   2         }
+  110   1      
+  111   1           if(right_PWM > 0)           //右轮
+  112   1        {
+  113   2                              right_PWM = right_PWM <= Duty_Max ? right_PWM : Duty_Max;
+  114   2                              P64 = 1;                         
+  115   2                              pwm_duty(Right_PWM_Pin,right_PWM);      // 正转         
+  116   2        } 
+  117   1               else 
+  118   1        {
+  119   2                              right_PWM = right_PWM >= -Duty_Max ? (-right_PWM) : Duty_Max;  
+  120   2                              P64 = 0;
+  121   2                              pwm_duty(Right_PWM_Pin,right_PWM);  // 反转
+  122   2        }
+  123   1      }
+C251 COMPILER V5.60.0,  speed                                                              15/07/23  15:59:10  PAGE 3   
+
+  124          
+  125          /****************************电机输出**********************
+  126          函数：void go_motor (int16 left_PWM,int16 right_PWM)
+  127          参数：1：正转  0 反转
+  128          说明：无
+  129          返回：无
+  130          **********************************************************/
+  131          #define  Zhengzhuan 1
+  132          #define  Fanzhuan   0
+  133          void Test_Motor(int16 direction)
+  134          {
+  135   1              while(1)
+  136   1              {
+  137   2                      if(direction == Zhengzhuan)
+  138   2                              go_motor(2000,2000);                // 两轮均正转
+  139   2                      if(direction == Fanzhuan)
+  140   2                              go_motor(-2000,-2000);                  // 两轮反转
+  141   2              }       
+  142   1      }
+  143          
+  144          
+  145          
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       499     ------
+  ecode size           =    ------     ------
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        30     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =        24     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -1,0 +1,157 @@
+C251 COMPILER V5.60.0,  others                                                             15/07/23  15:59:11  PAGE 1   
+
+
+C251 COMPILER V5.60.0, COMPILATION OF MODULE others
+OBJECT MODULE PLACED IN .\Out_File\others.obj
+COMPILER INVOKED BY: D:\Keil\C251\BIN\C251.EXE ..\CODE\others.c XSMALL INTR2 WARNINGLEVEL(3) OPTIMIZE(0,SPEED) BROWSE IN
+                    -CDIR(..\..\Libraries\libraries;..\..\Libraries\seekfree_libraries;..\..\Libraries\seekfree_peripheral;..\CODE;..\USER\in
+                    -c;..\USER\src;..\CODE) DEBUG PRINT(.\Out_File\others.lst) OBJECT(.\Out_File\others.obj) 
+
+stmt  level    source
+
+    1          #include "Others.h"
+    2          
+    3          
+    4          
+    5          //-------------------------------------------------------------------------------------------------------
+             -------------
+    6          //  @brief      刹车函数
+    7          //  @param      speed         赋给电机的速度
+    8          //  @param      time_ms         刹车的秒数
+    9          //  @return     void
+   10          //  @others                                                                     
+   11          //  Sample usage:    
+   12          //-------------------------------------------------------------------------------------------------------
+             -------------
+   13          void Brake(int16 speed, int16 time_ms)
+   14          {
+   15   1                      go_motor(speed,speed);
+   16   1                      delay_ms(time_ms);
+   17   1      }
+   18          
+   19          //-------------------------------------------------------------------------------------------------------
+             -------------
+   20          //  @brief      倒车检测吸铁石
+   21          //  @param      speed         赋给电机的速度
+   22          //  @param      time_ms         倒车的秒数
+   23          //  @return     void                                    
+   24          //  @others                                                                                     
+   25          //  Sample usage:    
+   26          //-------------------------------------------------------------------------------------------------------
+             -------------
+   27          void Backward_Hall_again(int16 speed, int16 time_ms)
+   28          {
+   29   1                      while(HALL_PIN)
+   30   1                              go_motor(speed,speed);
+   31   1                      delay_ms(time_ms);
+   32   1      }
+   33          
+   34          // 停车
+   35          void Stop_Car(void)
+   36          {
+   37   1      //              pwm_duty(Steer_Pin,Steer_Duty_Midle);
+   38   1                      while(1)
+   39   1                              go_motor(0,0);          
+   40   1      }
+   41          
+   42          //-------------------------------------------------------------------------------------------------------
+             -------------
+   43          //  @brief      出库入库处理
+   44          //  @param      lr                              1为右   0为左
+   45          //  @param      speed                   出入库速度，赋给go_motor()函数
+   46          //  @return     void
+   47          //  @others                                                                     如果设置了右出必定为右进，设置了左出必定为左进
+   48          //  Sample usage:    
+   49          //-------------------------------------------------------------------------------------------------------
+             -------------
+   50          uint32 T_ALready = 0;                   //  全局计时,50ms的个数
+   51          unsigned char Default_Dir;
+C251 COMPILER V5.60.0,  others                                                             15/07/23  15:59:11  PAGE 2   
+
+   52          
+   53          void OutInGarage(unsigned char lr, int16 speed)
+   54          {       
+   55   1                 int16 T_New = 0;                             // 当前时间
+   56   1                       if(lr)                                                                 // 右入右出
+   57   1                       {
+   58   2                                                      // 直走一小段路
+   59   2                                                      T_New = T_ALready;                                                                                                                                                      // 获取当前时间(来自pit定时器5ms定时中断)
+   60   2                                                      pwm_duty(Steer_Pin, Steer_Duty_Midle);                                                                  // 直走
+   61   2                                                      go_motor(speed,speed);                                                                                                                                  // 直走速度
+   62   2                                                      while(T_ALready < T_New + T_OUT_GoStraight);                                            // 直走时间：10*50ms = 0.5s
+   63   2                                                      
+   64   2                                                      // 向右打角出库
+   65   2                                                      T_New = T_ALready;                                                                                                                                                      // 获取当前时间(来自pit定时器5ms定时中断)
+   66   2                                                      pwm_duty(Steer_Pin, Steer_Duty_Min);                                                                            // 向右打角
+   67   2                                                      go_motor(speed,speed);                                                                                                                                  // 打角速度
+   68   2                                                      while(T_ALready < T_New + T_OUT_TurnCorner);                                            // 打角时间  10*50ms = 0.5s
+   69   2                       }
+   70   1                       
+   71   1      /*-----------------------------------------------------------------------------*/
+   72   1                      else                                                                            // 左入左出
+   73   1                      {
+   74   2                                                      // 直走一小段路
+   75   2                                                      T_New = T_ALready;                                                                                                                                                      // 获取当前时间
+   76   2                                                      pwm_duty(Steer_Pin, Steer_Duty_Midle);                                                                  // 直走
+   77   2                                                      go_motor(speed,speed);                                                                                                                                          // 直走速度
+   78   2                                                      while(T_ALready < T_New + T_OUT_GoStraight);                                            // 直走时间：10*50ms = 0.50s
+   79   2                                                      
+   80   2                                                      // 向右打角出库
+   81   2                                                      T_New = T_ALready;                                                                                                                                                      // 获取当前时间
+   82   2                                                      pwm_duty(Steer_Pin, Steer_Duty_Max);                                                                            // 向右打角
+   83   2                                                      go_motor(speed,speed);                                                                                                                                          // 打角速度
+   84   2                                                      while(T_ALready < T_New + T_OUT_TurnCorner);                                            // 打角时间： 10*50ms = 0.50s           
+   85   2                      }
+   86   1      }
+   87          
+   88          
+   89          
+   90          void STOP_Analyse(void)
+   91          {
+   92   1                      // 单簧管检测车库
+   93   1      //              if(Flag_Tof_Finish == 1)
+   94   1      //              {
+   95   1                                      if(HALL_PIN == 0)                                                       // 干簧管检测到结果
+   96   1                                      {
+   97   2                                                      LightOn;                                                                        // 开灯
+   98   2                                                      Flag.STOP = 1;                                          // 停车标志位
+   99   2                                      }
+  100   1      //              }
+  101   1                      
+  102   1                      // 入库操作
+  103   1                      if(Flag.STOP == 1)
+  104   1                      {
+  105   2                                      int_OK = 0;                                                                                     // 把Fuse全局控制关闭
+  106   2                                      pwm_duty(Steer_Pin, Steer_Duty_Midle);  // 打回中值
+  107   2                                      Brake(-500,300);                                                                // -500速度刹车300ms
+  108   2                                      Backward_Hall_again(-1800,300); // -1300：-1300速度倒车直至检测干簧管  200：保持-1300走200ms
+  109   2                                      OutInGarage(Default_Dir,2100);  // 右入库
+  110   2                                      Stop_Car();                                                                                     // 停车
+  111   2                      }
+  112   1      }
+
+
+Module Information          Static   Overlayable
+------------------------------------------------
+  code size            =       379     ------
+  ecode size           =    ------     ------
+C251 COMPILER V5.60.0,  others                                                             15/07/23  15:59:11  PAGE 3   
+
+  data size            =    ------     ------
+  idata size           =    ------     ------
+  pdata size           =    ------     ------
+  xdata size           =    ------     ------
+  xdata-const size     =    ------     ------
+  edata size           =        18     ------
+  bit size             =    ------     ------
+  ebit size            =    ------     ------
+  bitaddressable size  =    ------     ------
+  ebitaddressable size =    ------     ------
+  far data size        =    ------     ------
+  huge data size       =    ------     ------
+  const size           =    ------     ------
+  hconst size          =         8     ------
+End of Module Information.
+
+
+C251 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
