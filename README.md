@@ -20,9 +20,9 @@ We got **Second Prize in Provincial level, ElectroMagnet Group**.
 
 The project developed by: 
 
-[MenHimChan (WenQianChen) (github.com)](https://github.com/MenHimChan)
+🐱 [MenHimChan (WenQianChen) (github.com)](https://github.com/MenHimChan)
 
-[YWpepper (wen.Yan) (github.com)](https://github.com/YWpepper)
+🐯 [YWpepper (wen.Yan) (github.com)](https://github.com/YWpepper)
 
 ## 2. Hardware Platform 🕹
 
