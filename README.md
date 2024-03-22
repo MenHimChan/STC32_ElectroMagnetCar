@@ -41,10 +41,9 @@ The project is based on the following configs:
 
 Here is the motherboard projects, feel free to use if needed:
 
-+ [电磁智能车运放+DRV8701电机驱动 - 嘉立创EDA开源硬件平台 (oshwhub.com)](https://oshwhub.com/menhimchan/zhi-neng-ju)
-+ [18届负压电磁智能车主板 - 嘉立创EDA开源硬件平台 (oshwhub.com)](https://oshwhub.com/menhimchan/zhi-neng-ju-zhu-ban)
++ [18届 负压电磁组 智能车](https://oshwhub.com/menhimchan/zhi-neng-ju-zhu-ban)
 
-[18届负压电磁智能车主板 - 嘉立创EDA开源硬件平台 (oshwhub.com)](https://oshwhub.com/menhimchan/zhi-neng-ju-zhu-ban)
+
 
 ## 5. VedioClip 🎞
 
