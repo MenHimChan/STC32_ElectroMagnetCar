@@ -45,9 +45,15 @@ Here is the motherboard projects, feel free to use if needed:
 
 
 
-## 5. VedioClip 🎞
+## 5. VedioClip 👇
 
 [18届智能车华南赛区负压电磁省二作品展示](https://www.bilibili.com/video/BV1UP41167nP)
+
+## 6. Last 🙏
+
+❓  Problems are welcomed to be raised in `Issues` .
+
+🙏  If u find our code useful, we will appreciate it if u can `give our project a star🌟🌟🌟`, thanks a lot !
 
 
 
