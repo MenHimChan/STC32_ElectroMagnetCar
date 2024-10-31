@@ -35,7 +35,7 @@ The project is based on the following configs:
 
 ## 3. Car Appearance 🚗
 
-<div align=left><img width="405" height="223" src="./pic/car.jpg"/></div>
+<div align=left><img width="405" height="223" src="pic/car.jpg"/></div>
 
 ## 4. Part of our PCB projects 🔨
 
